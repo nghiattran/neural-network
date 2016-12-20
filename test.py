@@ -17,8 +17,14 @@ perceptron = Perceptron({
 
 trainer = Trainer(perceptron)
 trainer.XOR()
-print('test')
-print(perceptron.activate([0, 0]))
-print(perceptron.activate([0, 1]))
-print(perceptron.activate([1, 0]))
-print(perceptron.activate([1, 1]))
+# print('test')
+# print(perceptron.activate([0, 0]))
+# print(perceptron.activate([0, 1]))
+# print(perceptron.activate([1, 0]))
+# print(perceptron.activate([1, 1]))
+
+print(perceptron.to_json())
+
+perceptron1 = Perceptron.from_json(perceptron.to_json())
+
+print(perceptron1.to_json())

@@ -1,5 +1,7 @@
 # # import lib.architect as architect
 # from .architect import Perceptron
+import math
+
 
 class Trainer(object):
     def __init__(self, neural_network = None):
@@ -15,28 +17,52 @@ class Trainer(object):
         self.neural_network = neural_network
         self.neural_network.set_trainer(self)
 
-    def activation_function(self, x):
-        return 1 if x >= 0 else 0
+    def quash(self, x):
+        # return 1 if x >= 0 else 0
+        return 1 / (1 + pow(math.e, -1 * x))
 
-    def activate(self, input):
-        return self.activation_function(input - self.threshold)
+    def propagate(self, neuron):
+        activation = neuron.get_activation()
+        if neuron.layer.name == 'output':
+            neuron.error_gradient = activation * (1 - activation) * self.error
+        else:
+            sum = 0
+            for i in range(len(neuron.next)):
+                to_node = neuron.next[i].to_node
+                sum += to_node.error_gradient * neuron.next[i].get_weight()
+            neuron.error_gradient = activation * (1 - activation) * sum
 
-    def calculate_weight_correction(self, connection):
-        # print(connection.from_node.get_activation(), self.learning_rate, self.error)
-        return connection.from_node.get_activation() * self.learning_rate * self.error
+        for connection in neuron.previous:
+            connection.delta = self.learning_rate * connection.from_node.activation * neuron.error_gradient
 
-    def train_weight(self, connection):
-        connection.set_weight(
-            connection.get_weight() + self.calculate_weight_correction(connection)
-        )
+        neuron.delta_threshold = self.learning_rate * -1 * neuron.error_gradient
+
+    def update(self, neuron):
+        neuron.threshold + neuron.delta_threshold
+        for connection in neuron.previous:
+            connection.set_weight(connection.get_weight() + connection.delta)
+            print(connection.get_id(), connection.get_weight(), connection.delta)
+        print(neuron.get_id(), neuron.threshold, neuron.delta_threshold)
 
     def train(self, training_set, setting = None):
         connections = self.neural_network.get_connections()
         values = [0.5, 0.9, 0.4, 1, -1.2, 1.1]
-        for conn in connections:
+        for i in range(len(connections)):
+            connections[i].set_weight(values[i])
 
-            print(conn.get_id())
+        neurons = self.neural_network.get_neurons()
+        values = [0, 0, 0.8, -0.1, 0.3]
+        for i in range(len(neurons)):
+            neurons[i].set_threshold(values[i])
 
+        self.neural_network.activate([1, 1])
+        outputs = self.neural_network.get_outputs()
+        print(outputs)
+        self.error = 0
+        for index in range(len(outputs)):
+            self.error += 0 - outputs[index]
+        # print(self.error)
+        self.neural_network.propagate()
 
         # Initialization
         # self.neural_network.initialize()
@@ -76,17 +102,8 @@ class Trainer(object):
     def XOR(self):
         self.train([
             {
-                'input': [0, 0],
-                'output': [0]
-            },{
-                'input': [0, 1],
-                'output': [0]
-            },{
-                'input': [1, 0],
-                'output': [0]
-            },{
                 'input': [1, 1],
-                'output': [1]
+                'output': [0]
             }
 
         ])
