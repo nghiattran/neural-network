@@ -87,8 +87,3 @@ class Neuron(object):
         if self.trainer is None:
             raise ValueError('Trainer must be set before trainning')
         return self.trainer.calculate_output(self)
-
-# neuron1 = Neuron()
-# neuron2 = Neuron()
-#
-# print(neuron1.get_id(), neuron2.get_id())

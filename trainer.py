@@ -1,5 +1,3 @@
-from neuron import Neuron
-
 class Trainer(object):
     def __init__(self):
         self.threshold = 0.2
