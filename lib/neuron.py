@@ -1,4 +1,5 @@
-from trainer import Trainer
+from lib.trainer import Trainer as Trainer
+
 
 class Connection(object):
     def __init__(self, from_node, to_node):
@@ -17,14 +18,18 @@ class Connection(object):
         self.trainer = trainer
         return self
 
-    def calculate_output(self):
-        if self.trainer is None:
-            raise ValueError('Trainer must be set before trainning')
-        return self.trainer.calculate_output(self)
+    def train_weight(self):
+        self.trainer.train_weight(self)
 
-    def calculate_input(self):
-        return self.from_node.get_weight() * self.weight
+    def set_weight(self, weight):
+        self.weight = weight
+        return self
 
+    def initialize(self):
+        self.weight = 0.1
+
+    def get_id(self):
+        return '{0}-{1}'.format(self.from_node.get_id(), self.to_node.get_id())
 
 class Neuron(object):
     __id_count__ = 0
@@ -37,7 +42,7 @@ class Neuron(object):
     def __init__(self):
         self._id = Neuron.generate_id()
         self.error = 0
-        self.weight = 0
+        self.activation = 0
         self.previous = []
         self.next = []
 
@@ -68,22 +73,45 @@ class Neuron(object):
         if type(trainer) is not Trainer:
             raise ValueError('Trainer must be a "Trainer" instance')
         self.trainer = trainer
+
+        for i in range(len(self.next)):
+            self.next[i].set_trainer(trainer)
+
         return self
 
     def set_layer(self, layer):
         self.layer = layer
         return self
 
-    def get_weight(self):
-        return self.weight
+    def get_activation(self):
+        return self.activation
 
-    def calculate_connections_sum(self):
+    def get_previous_connections(self):
+        return self.previous
+
+    def get_next_connections(self):
+        return self.next
+
+    def calculate_input(self, input = None):
+        if input is None:
+            input = self.activation
+
         sum = 0
         for i in range(len(self.previous)):
-            sum += self.previous.calculate_input()
+            sum += self.previous[i].get_weight() * input
         return sum
 
-    def calculate_output(self):
-        if self.trainer is None:
-            raise ValueError('Trainer must be set before trainning')
-        return self.trainer.calculate_output(self)
+    def activate(self, input = None):
+        self.activation = self.trainer.activate(self.calculate_input(input))
+
+    def train_weight(self):
+        for i in range(len(self.previous) - 1, -1, -1):
+            self.previous[i].train_weight()
+
+    def set_activation(self, activation):
+        self.activation = activation
+        return self
+
+    def initialize(self):
+        for i in range(len(self.next) - 1, -1, -1):
+            self.next[i].initialize()
