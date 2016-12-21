@@ -1,110 +1,52 @@
-# # import lib.architect as architect
-# from .architect import Perceptron
 import math
 
 
+def LOGISTIC(x, derivative = False):
+    if derivative == True:
+        fx = LOGISTIC(x)
+        return fx * (1 - fx)
+    return 1 / (1 + pow(math.e, -1 * x))
+
 class Trainer(object):
-    def __init__(self, neural_network = None):
-        if neural_network is not None:
-            self.set_network(neural_network)
-
-        self.threshold = 0.2
-        self.learning_rate = 0.1
-
-    def set_network(self, neural_network):
-        # if neural_network is not None and type(neural_network) is not Perceptron:
-        #     raise ValueError('Neural Network object is not a Perceptron instance')
-        self.neural_network = neural_network
-        self.neural_network.set_trainer(self)
-
-    def quash(self, x):
-        # return 1 if x >= 0 else 0
-        return 1 / (1 + pow(math.e, -1 * x))
-
-    def propagate(self, neuron):
-        activation = neuron.get_activation()
-        if neuron.layer.name == 'output':
-            neuron.error_gradient = activation * (1 - activation) * self.error
+    def __init__(self, network = None, setting = None):
+        if network is not None:
+            self.set_network(network)
         else:
-            sum = 0
-            for i in range(len(neuron.next)):
-                to_node = neuron.next[i].to_node
-                sum += to_node.error_gradient * neuron.next[i].get_weight()
-            neuron.error_gradient = activation * (1 - activation) * sum
+            self.network = None
 
-        for connection in neuron.previous:
-            connection.delta = self.learning_rate * connection.from_node.activation * neuron.error_gradient
+        self.set({})
 
-        neuron.delta_threshold = self.learning_rate * -1 * neuron.error_gradient
+    def set(self, setting):
+        if type(setting) is dict:
+            self.learning_rate = setting['rate'] if 'rate' in setting else 0.5
+            self.error = setting['error'] if 'error' in setting else 0.05
+            self.squash = setting['quash'] if 'quash' in setting else LOGISTIC
+        else:
+            raise ValueError('The second argument must be a dictionary')
 
-    def update(self, neuron):
-        neuron.threshold + neuron.delta_threshold
-        for connection in neuron.previous:
-            connection.set_weight(connection.get_weight() + connection.delta)
-            print(connection.get_id(), connection.get_weight(), connection.delta)
-        print(neuron.get_id(), neuron.threshold, neuron.delta_threshold)
+    def set_network(self, network):
+        self.network = network
+        self.network.set_trainer(self)
 
     def train(self, training_set, setting = None):
-        connections = self.neural_network.get_connections()
-        values = [0.5, 0.9, 0.4, 1, -1.2, 1.1]
-        for i in range(len(connections)):
-            connections[i].set_weight(values[i])
+        if self.network is None:
+            raise ValueError('Network has to be set before trainning.')
 
-        neurons = self.neural_network.get_neurons()
-        values = [0, 0, 0.8, -0.1, 0.3]
-        for i in range(len(neurons)):
-            neurons[i].set_threshold(values[i])
+        if setting is not None:
+            self.set(setting)
 
-        self.neural_network.activate([1, 1])
-        outputs = self.neural_network.get_outputs()
-        print(outputs)
-        self.error = 0
-        for index in range(len(outputs)):
-            self.error += 0 - outputs[index]
-        # print(self.error)
-        self.neural_network.propagate()
+        init_method = setting['inital'] if setting and 'inital' in setting else None
 
-        # Initialization
-        # self.neural_network.initialize()
-        # connection = [neuron.next for neuron in self.neural_network.input.get_neurons()]
-        # connections = [connection[0][0], connection[1][0]]
-        # connection[0][0].set_weight(0.3)
-        # connection[1][0].set_weight(-0.1)
-        #
-        # self.error = 0
-        # error = 999
-        # count = 0
-        # while count < 3:
-        #     count += 1
-        #     error = 0
-        #     for i in range(len(training_set)):
-        #         # Activation
-        #         self.neural_network.activate(training_set[i]['input'])
-        #
-        #         # Calculate error
-        #         outputs = self.neural_network.get_outputs()
-        #         if 'output' not in training_set[i] and len(outputs) != len(training_set[i]['output']):
-        #             raise ValueError("Number of ouputs and number of desired outputs don't macth")
-        #         self.error = 0
-        #         for index in range(len(outputs)):
-        #             self.error += pow(training_set[i]['output'][index] - outputs[index], 2)
-        #
-        #         # Train weight
-        #         self.neural_network.train_weight()
-        #         # print(self.error)
-        #         error += self.error
-        #
-        #         print('output: {0}, final weights: {1}, {2}, error: {3}'.format(
-        #             outputs, connections[0].get_weight(), connections[1].get_weight(),
-        #             self.error
-        #         ))
+        self.network.initialize(init_method)
 
-    def XOR(self):
-        self.train([
-            {
-                'input': [1, 1],
-                'output': [0]
-            }
-
-        ])
-
+        error = 99
+        count = 1
+        while error > self.error and count < 60:
+            count += 1
+            error = 0
+            for data in training_set:
+                # print()
+                value = self.network.activate(data['input'])
+                error += sum(value)
+                self.network.propagate(data['output'])
+            print(error)

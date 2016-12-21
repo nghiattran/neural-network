@@ -1,79 +1,23 @@
 from lib.neuron import Neuron
-import zipfile
+
 
 class Layer(object):
-    def __init__(self, setting = None):
+    def __init__(self, setting):
         self.neurons = []
-        if setting is None:
-            return
 
         if type(setting) is int:
+            self.name = ''
             for i in range(setting):
                 self.neurons.append(Neuron(self))
+        elif type(setting) is dict:
+            try:
+                self.name = setting['name']
+                for neuron in setting['neurons']:
+                    self.neurons.append(Neuron(self, neuron))
+            except:
+                raise ValueError('Input file is corrupted.')
         else:
-            raise ValueError('Layer constructor only takes integer argument')
-
-    def get_neurons(self):
-        return self.neurons
-
-    def project(self, layer):
-        if type(layer) is not Layer:
-            raise ValueError('Projected object is not a Layer instance')
-
-        neurons = layer.get_neurons()
-        for neuron in self.neurons:
-            for next_neuron in neurons:
-                neuron.connect(next_neuron)
-        return self
-
-    def propagate(self):
-        for i in range(len(self.neurons) - 1, -1, -1):
-            self.neurons[i].propagate()
-
-    def activate(self, input = None):
-        activation = []
-
-        if input is not None:
-            print(self.neurons)
-            if len(input) != len(self.neurons):
-                raise ValueError('Input size does not match number of neurons.')
-
-            for i in range(len(self.neurons)):
-                activation.append(
-                    self.neurons[i].activate(input[i])
-                )
-        else:
-            for i in range(len(self.neurons)):
-                activation.append(
-                    self.neurons[i].activate()
-                )
-
-        return activation
-
-    def get_activations(self):
-        return [neuron.get_activation() for neuron in self.neurons]
-
-    def initialize(self):
-        for i in range(len(self.neurons)):
-            self.neurons[i].initialize()
-
-    def set_trainer(self, trainer):
-        for i in range(len(self.neurons)):
-            self.neurons[i].set_trainer(trainer)
-
-    def get_connections(self):
-        connections = []
-        for neuron in self.neurons:
-            for connection in neuron.next:
-                connections.append(connection)
-        return connections
-
-    def set_layer(self, value):
-        self.name = value
-
-    def update(self):
-        for i in range(len(self.neurons)):
-            self.neurons[i].update()
+            raise ValueError('Layer constructor only takes either an integer argument for a dictionary.')
 
     def to_json(self):
         return {
@@ -81,14 +25,48 @@ class Layer(object):
             'neurons': [neuron.to_json() for neuron in self.neurons]
         }
 
-    def init(self, layer):
-        self.set_layer(layer['name'])
-        for neuron_obj in layer['neurons']:
-            neuron = Neuron(self)
-            neuron.init(
-                id=neuron_obj['id'],
-                activation=neuron_obj['activation'],
-                threshold=neuron_obj['threshold'],
-                state=neuron_obj['state'],
-                old=neuron_obj['old'])
-            self.neurons.append(neuron)
+    def set_name(self, name):
+        self.name = name
+
+    @staticmethod
+    def from_json(setting):
+        return Layer(setting)
+
+    def activate(self, inputs = None):
+        if inputs is None:
+            return [self.neurons[i].activate() for i in range(len(self.neurons))]
+
+        if len(inputs) != len(self.neurons):
+            raise ValueError('Input size does not match number of neurons.')
+
+        return [self.neurons[i].activate(inputs[i]) for i in range(len(self.neurons))]
+
+    def propagate(self, outputs = None):
+        if outputs is None:
+            for i in range(len(self.neurons)):
+                self.neurons[i].propagate()
+            return
+
+        if len(outputs) != len(self.neurons):
+            raise ValueError('Output size does not match number of neurons.')
+
+        for i in range(len(self.neurons)):
+            self.neurons[i].propagate(outputs[i])
+
+    def project(self, layer):
+        if type(layer) is not Layer:
+            raise ValueError('Projected object is not a Layer instance')
+
+        for neuron in self.neurons:
+            for projected_neuron in layer.neurons:
+                neuron.connect(projected_neuron)
+
+    def get_connections(self):
+        connections = []
+        for neuron in self.neurons:
+            connections += neuron.next
+        return connections
+
+    def set_trainer(self, trainer):
+        for neuron in self.neurons:
+            neuron.set_trainer(trainer)

@@ -1,35 +1,6 @@
-from lib.trainer import Trainer as Trainer
+from lib.connection import Connection
+import random
 
-
-class Connection(object):
-    def __init__(self, from_node, to_node):
-        if type(from_node) is not Neuron or type(to_node) is not Neuron:
-            raise ValueError('A neuron must be a "Neuron" instance')
-        self.from_node = from_node
-        self.to_node = to_node
-        self._weight = 0
-
-    def get_weight(self):
-        return self._weight
-
-    def set_trainer(self, trainer):
-        if type(trainer) is not Trainer:
-            raise ValueError('Trainer must be a "Trainer" instance')
-        self._trainer = trainer
-        return self
-
-    def connection_weight(self):
-        return self.from_node.get_activation() * self._weight
-
-    def set_weight(self, weight):
-        self._weight = weight
-        return self
-
-    def initialize(self):
-        self._weight = 0.1
-
-    def get_id(self):
-        return '{0}-{1}'.format(self.from_node.get_id(), self.to_node.get_id())
 
 class Neuron(object):
     __id_count__ = 0
@@ -39,106 +10,89 @@ class Neuron(object):
         Neuron.__id_count__ += 1
         return Neuron.__id_count__
 
-    def __init__(self, layer, id = None):
+    def __init__(self, layer, setting = None):
         self.previous = []
         self.next = []
-        self._layer = layer
-        self.init(
-            id = id if id is not None else Neuron.generate_id(),
-            activation=0, threshold=0, state=0, old=0
-        )
+        self.layer = layer
+        self.trainer = None
+        self.error_gradient = 0
 
-    def init(self, id, activation, threshold, state, old):
-        self._id = id
-        self.activation = activation
-        self.threshold = threshold
-        self.state = state
-        self.old = old
+        if setting is None:
+            self.id = Neuron.generate_id()
+            self.activation = 0
+            self.threshold = 0
+            self.state = 0
+            self.old = 0
+        else:
+            try:
+                self.id = setting['id']
+                self.activation = setting['activation']
+                self.threshold = setting['threshold']
+                self.state = setting['state']
+                self.old = setting['old']
+            except:
+                raise ValueError('Input file is corrupted.')
+
+    def initialize(self, cb = None):
+        if cb is None:
+            self.threshold = random.uniform(-0.5, 0.5)
+            return self
+
+        self.threshold = cb()
+        return self
 
     def to_json(self):
         return {
-            'id': self._id,
-            'activation': 0 if self._layer.name == 'input' else self.activation ,
-            'threshold': self.threshold,
+            'id': self.id,
+            'activation': self.activation,
             'state': self.state,
             'old': self.old,
+            'threshold': self.threshold
         }
 
-    def get_id(self):
-        return self._id
-
-    def connect(self, next_neuron):
-        if type(next_neuron) is not Neuron:
-            raise ValueError('A neuron must be a "Neuron" instance')
-        connection = Connection(from_node=self, to_node=next_neuron)
-        self.set_next(connection)
-        next_neuron.set_previous(connection)
-        return self
-
-    def set_previous(self, connection):
-        if type(connection) is not Connection:
-            raise ValueError('A connection must be a "Connection" instance')
-        self.previous.append(connection)
-        return self
-
-    def set_next(self, connection):
-        if type(connection) is not Connection:
-            raise ValueError('A connection must be a "Connection" instance')
-        self.next.append(connection)
-        return self
-
-    def set_trainer(self, trainer):
-        if type(trainer) is not Trainer:
-            raise ValueError('Trainer must be a "Trainer" instance')
-        self._trainer = trainer
-
-        for i in range(len(self.next)):
-            self.next[i].set_trainer(trainer)
-
-        return self
-
-    def set_layer(self, layer):
-        self._layer = layer
-        return self
-
-    def get_activation(self):
-        return self.activation
-
-    def get_previous_connections(self):
-        return self.previous
-
-    def get_next_connections(self):
-        return self.next
+    @staticmethod
+    def from_json(layer, setting):
+        return Neuron(layer, setting)
 
     def activate(self, input = None):
         if input is not None:
             self.activation = input
-            return
+            return self.activation
 
         self.old = self.state
         self.state = 0
-        for i in range(len(self.previous)):
-            self.state += self.previous[i].connection_weight()
+        for connection in self.previous:
+            self.state += connection.get_state()
 
-        self.activation = self._trainer.quash(self.state - self.threshold)
-        print('activation', self.activation)
+        # eq 6.2
+        self.activation = self.trainer.squash(self.state - self.threshold)
 
-    def update(self):
-        self._trainer.update(self)
+        return self.activation
 
-    def propagate(self):
-        self._trainer.propagate(self)
+    def propagate(self, output = None):
+        # output is None means this is a neuron in hidden layer
+        if output is None:
+            # eq 6.15
+            error = 0
+            for connection in self.next:
+                error += connection.get_error()
+        else:
+            # eq 6.4
+            error = output - self.activation
 
-    def set_activation(self, activation):
-        self.activation = activation
+        # eq 6.13
+        self.error_gradient = self.trainer.squash(self.state - self.threshold, True) * error
+
+        for connection in self.previous:
+            connection.calculate_weight_correction(0.1)
+
+        for connection in self.next:
+            connection.update()
+
+    def set_trainer(self, trainer):
+        self.trainer = trainer
         return self
 
-    def initialize(self):
-        for i in range(len(self.next) - 1, -1, -1):
-            self.next[i].initialize()
-
-    def get_threshold(self):
-        return self.threshold
-
-    def set_threshold(self, value):
-        self.threshold = value
+    def connect(self, next_neuron, weight = 0):
+        Connection(self, next_neuron, weight)
+        return self
