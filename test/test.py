@@ -2,54 +2,103 @@ from lib.network import Network
 from lib.layer import Layer
 from lib.trainer import Trainer
 import json
+import os
+import unittest
 
+class TestNeuralNetwork(unittest.TestCase):
+    def test_XOR_operation(self):
+        input_layer = Layer(2)
+        hidden_layer = Layer(20)
+        output_layer = Layer(1)
 
-def update_rate(rate, error, last_error):
-    if error > last_error:
-        return rate * 0.85
-    else:
-        return rate * 1.05;
+        input_layer.project(hidden_layer)
+        hidden_layer.project(output_layer)
 
+        network = Network({
+            'input': input_layer,
+            'hidden': [hidden_layer],
+            'output': output_layer
+        })
+        trainer = Trainer(network)
+        error, epoch = trainer.XOR()
+        self.assertTrue(error < 0.05)
 
-with open('data.txt') as data_file:
-    # data = json.load(data_file)
-    # new = Network.from_json(data)
-    # print(new.to_json())
+        self.assertTrue(abs(sum(network.activate([0, 0])) - 0) < 0.1)
+        self.assertTrue(abs(sum(network.activate([0, 1])) - 1) < 0.1)
+        self.assertTrue(abs(sum(network.activate([1, 0])) - 1) < 0.1)
+        self.assertTrue(abs(sum(network.activate([1, 1])) - 0) < 0.1)
 
+    def test_AND_operation(self):
+        input_layer = Layer(2)
+        hidden_layer = Layer(20)
+        output_layer = Layer(1)
 
-    input_layer = Layer(2)
-    hidden_layer = Layer(20)
-    output_layer = Layer(1)
+        input_layer.project(hidden_layer)
+        hidden_layer.project(output_layer)
 
-    input_layer.project(hidden_layer)
-    hidden_layer.project(output_layer)
+        network = Network({
+            'input': input_layer,
+            'hidden': [hidden_layer],
+            'output': output_layer
+        })
+        trainer = Trainer(network)
+        error, epoch = trainer.AND()
+        self.assertTrue(error < 0.05)
 
-    new = Network({
-        'input': input_layer,
-        'hidden': [hidden_layer],
-        'output': output_layer
-    })
+        self.assertTrue(abs(sum(network.activate([0, 0])) - 0) < 0.1)
+        self.assertTrue(abs(sum(network.activate([0, 1])) - 0) < 0.1)
+        self.assertTrue(abs(sum(network.activate([1, 0])) - 0) < 0.1)
+        self.assertTrue(abs(sum(network.activate([1, 1])) - 1) < 0.1)
 
-    # print(new.to_json())
+    def test_to_json(self):
+        input_layer = Layer(2)
+        hidden_layer = Layer(2)
+        output_layer = Layer(1)
 
-    trainer = Trainer(new)
-    settings = {
-        'shuffle': True,
-        'momentum': 0.99,
-        'error': 0.005,
-        'epoch': 5000,
-        # 'log': 1,
-        # 'update': update_rate
-    }
+        input_layer.project(hidden_layer)
+        hidden_layer.project(output_layer)
 
-    error, epoch = trainer.XOR()
+        network = Network({
+            'input': input_layer,
+            'hidden': [hidden_layer],
+            'output': output_layer
+        })
 
-    print(error, epoch)
+        network_json = network.to_json()
 
-    # with open('res.json', 'w') as file1:
-    #     json.dump(new.to_json(), file1, sort_keys=True, indent=4, ensure_ascii=False)
+        self.check_network_and_json(network, network_json)
 
-    print(new.activate([0, 0]))
-    print(new.activate([0, 1]))
-    print(new.activate([1, 0]))
-    print(new.activate([1, 1]))
+    def test_from_json(self):
+        fn = os.path.join(os.path.dirname(__file__), './test_network.json')
+        with open(fn) as data_file:
+            network_json = json.load(data_file)
+            network = Network.from_json(network_json)
+
+            self.check_network_and_json(network, network_json)
+
+    def check_network_and_json(self, network, network_json):
+        # Check input layer
+        self.assertTrue(len(network.input.neurons) == len(network_json['layers']['input']['neurons']))
+        for index in range(len(network.input.neurons)):
+            first = network.input.neurons[index]
+            second = network_json['layers']['input']['neurons'][index]
+            self.assertTrue(first.activation == second['activation'])
+            self.assertTrue(first.threshold == second['threshold'])
+
+        # Check hidden layers
+        self.assertTrue(len(network.hidden) == len(network_json['layers']['hidden']))
+        for index, layer in enumerate(network.hidden):
+            self.assertTrue(len(layer.neurons) == len(network_json['layers']['hidden'][index]))
+            for index2 in range(len(network.hidden[index].neurons)):
+                first = network.hidden[index].neurons[index2]
+                second = network_json['layers']['hidden'][index]['neurons'][index2]
+                self.assertTrue(first.activation == second['activation'])
+                self.assertTrue(first.threshold == second['threshold'])
+
+        # Check output layer
+        self.assertTrue(len(network.output.neurons) == len(network_json['layers']['output']['neurons']))
+        for index in range(len(network.output.neurons)):
+            first = network.output.neurons[index]
+            second = network_json['layers']['output']['neurons'][index]
+            self.assertTrue(first.activation == second['activation'])
+            self.assertTrue(first.threshold == second['threshold'])
