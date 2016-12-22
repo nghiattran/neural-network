@@ -83,11 +83,17 @@ class Neuron(object):
         # eq 6.13
         self.error_gradient = self.trainer.squash(self.state - self.threshold, True) * error
 
+        # Update all connections
         for connection in self.previous:
-            connection.calculate_weight_correction(0.1)
+            connection.calculate_weight_correction(self.trainer.learning_rate, self.trainer.momentum)
 
         for connection in self.next:
             connection.update()
+
+        # Update threshold
+        self.threshold += (-1) * self.trainer.learning_rate * self.error_gradient
+
+        return error
 
     def set_trainer(self, trainer):
         self.trainer = trainer

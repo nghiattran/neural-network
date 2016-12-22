@@ -1,21 +1,24 @@
 from .layer import Layer
+import random
+
+def RAN():
+    value = random.uniform(-0.5, 0.5)
+    return value
 
 class Network(object):
-    def __init__(self, setting = None):
-        if setting is None:
-            return
+    def __init__(self, setting):
         self.set(setting)
 
     def initialize(self, cb=None):
         for neuron in self.get_neurons():
-            neuron.initialize(cb)
+            neuron.initialize(RAN)
 
         for conn in self.get_connections():
-            conn.initialize(cb)
+            conn.initialize(RAN)
 
     def set(self, setting):
         if 'input' not in setting or 'output' not in setting:
-            raise Exception('Input layer or output layer for both are missing')
+            raise ValueError('Input layer or output layer for both are missing')
 
         if type(setting['input']) is not Layer or type(setting['output']) is not Layer:
             raise ValueError('Input layer, or output layer, or both are not Layer instances')
@@ -37,6 +40,9 @@ class Network(object):
             neurons = self.get_neurons_dict()
             for conn in setting['connections']:
                 neurons[conn['from']].connect(neurons[conn['to']], conn['weight'])
+        else:
+            # Initialize all connections and neurons
+            self.initialize(setting['init'] if 'init' in setting else None)
 
         return self
 
@@ -71,10 +77,11 @@ class Network(object):
         return self.output.activate()
 
     def propagate(self, outputs):
-        self.output.propagate(outputs)
+        errors = self.output.propagate(outputs)
         for i in range(len(self.hidden) - 1, -1, -1):
             self.hidden[i].propagate()
         self.input.propagate()
+        return errors
 
     def to_json(self):
         return {

@@ -1,4 +1,6 @@
 import math
+import types
+import random
 
 
 def LOGISTIC(x, derivative = False):
@@ -18,9 +20,12 @@ class Trainer(object):
 
     def set(self, setting):
         if type(setting) is dict:
-            self.learning_rate = setting['rate'] if 'rate' in setting else 0.5
-            self.error = setting['error'] if 'error' in setting else 0.05
+            self.learning_rate = setting['rate'] if 'rate' in setting else 0.1
+            self.error = setting['error'] if 'error' in setting else 0.005
             self.squash = setting['quash'] if 'quash' in setting else LOGISTIC
+            self.momentum = setting['momentum'] if 'momentum' in setting else 0.95
+            if not (0 <= self.momentum and self.momentum < 1):
+                raise ValueError('Momemtum value has to be: 0 <= momemtum < 1')
         else:
             raise ValueError('The second argument must be a dictionary')
 
@@ -35,18 +40,49 @@ class Trainer(object):
         if setting is not None:
             self.set(setting)
 
-        init_method = setting['inital'] if setting and 'inital' in setting else None
+        epoch_limit = setting['epoch'] if setting and 'epoch' in setting else 5000
+        log = setting['log'] if setting and 'log' in setting else math.inf
+        update = setting['update'] if setting and 'update' in setting else None
+        shuffle = setting['shuffle'] if setting and 'shuffle' in setting else False
+        error = 1
+        epoch = 0
 
-        self.network.initialize(init_method)
-
-        error = 99
-        count = 1
-        while error > self.error and count < 60:
-            count += 1
+        while error > self.error and epoch < epoch_limit:
+            epoch += 1
+            previous_error = error
             error = 0
             for data in training_set:
-                # print()
-                value = self.network.activate(data['input'])
-                error += sum(value)
-                self.network.propagate(data['output'])
-            print(error)
+                self.network.activate(data['input'])
+                errors = self.network.propagate(data['output'])
+                error += pow(sum(errors), 2)
+
+            if epoch % log == 0:
+                print(epoch, error, self.learning_rate)
+
+            if update is not None:
+                self.learning_rate = update(previous_error, error, self.learning_rate)
+
+            if shuffle:
+                random.shuffle(training_set)
+        return error, epoch
+
+    def XOR(self, setting = None):
+        if setting is None:
+            settings = {
+                'shuffle': True,
+                'momentum': 0.99,
+            }
+
+        return self.train([{
+            'input': [0, 0],
+            'output': [0]
+        }, {
+            'input': [0, 1],
+            'output': [1]
+        }, {
+            'input': [1, 0],
+            'output': [1]
+        },{
+            'input': [1, 1],
+            'output': [0]
+        }], settings)

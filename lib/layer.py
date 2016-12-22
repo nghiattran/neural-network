@@ -43,15 +43,12 @@ class Layer(object):
 
     def propagate(self, outputs = None):
         if outputs is None:
-            for i in range(len(self.neurons)):
-                self.neurons[i].propagate()
-            return
+            return [self.neurons[i].propagate() for i in range(len(self.neurons)) ]
 
         if len(outputs) != len(self.neurons):
             raise ValueError('Output size does not match number of neurons.')
 
-        for i in range(len(self.neurons)):
-            self.neurons[i].propagate(outputs[i])
+        return [self.neurons[i].propagate(outputs[i]) for i in range(len(self.neurons))]
 
     def project(self, layer):
         if type(layer) is not Layer:

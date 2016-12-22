@@ -3,8 +3,6 @@ import random
 
 class Connection(object):
     def __init__(self, from_neuron, to_neuron, weight = 0):
-        # if type(from_neuron) is not Neuron or type(to_neuron) is not Neuron:
-        #     raise ValueError('A neuron must be a "Neuron" instance')
         self.from_neuron = from_neuron
         self.to_neuron = to_neuron
         self.weight = weight
@@ -16,7 +14,6 @@ class Connection(object):
     def initialize(self, cb = None):
         if cb is None:
             self.threshold = random.uniform(-0.5, 0.5)
-            print(self.threshold)
             return self
 
         self.threshold = cb()
@@ -29,9 +26,10 @@ class Connection(object):
             'weight': self.weight
         }
 
-    def calculate_weight_correction(self, learning_rate):
-        # eq 6.12
-        self.delta_weight = learning_rate * self.from_neuron.activation * self.to_neuron.error_gradient
+    def calculate_weight_correction(self, learning_rate, momentum = 0):
+        # eq 6.17
+        self.delta_weight = momentum * self.delta_weight + \
+                            learning_rate * self.from_neuron.activation * self.to_neuron.error_gradient
         return self.delta_weight
 
     def update(self):
