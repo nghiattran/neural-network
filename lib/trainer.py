@@ -66,8 +66,8 @@ class Trainer(object):
                 random.shuffle(training_set)
         return error, epoch
 
-    def XOR(self, setting = None):
-        if setting is None:
+    def XOR(self, settings = None):
+        if settings is None:
             settings = {
                 'shuffle': True,
                 'momentum': 0.99,
@@ -85,4 +85,25 @@ class Trainer(object):
         },{
             'input': [1, 1],
             'output': [0]
+        }], settings)
+
+    def AND(self, settings = None):
+        if settings is None:
+            settings = {
+                'shuffle': True,
+                'momentum': 0.99,
+            }
+
+        return self.train([{
+            'input': [0, 0],
+            'output': [0]
+        }, {
+            'input': [0, 1],
+            'output': [0]
+        }, {
+            'input': [1, 0],
+            'output': [0]
+        }, {
+            'input': [1, 1],
+            'output': [1]
         }], settings)

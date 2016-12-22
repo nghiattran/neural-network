@@ -12,10 +12,6 @@ class Connection(object):
         self.to_neuron.previous.append(self)
 
     def initialize(self, cb = None):
-        if cb is None:
-            self.threshold = random.uniform(-0.5, 0.5)
-            return self
-
         self.threshold = cb()
         return self
 

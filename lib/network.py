@@ -10,11 +10,13 @@ class Network(object):
         self.set(setting)
 
     def initialize(self, cb=None):
+        if cb is None:
+            cb = RAN
         for neuron in self.get_neurons():
-            neuron.initialize(RAN)
+            neuron.initialize(cb)
 
         for conn in self.get_connections():
-            conn.initialize(RAN)
+            conn.initialize(cb)
 
     def set(self, setting):
         if 'input' not in setting or 'output' not in setting:

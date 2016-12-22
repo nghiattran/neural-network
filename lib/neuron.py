@@ -34,10 +34,6 @@ class Neuron(object):
                 raise ValueError('Input file is corrupted.')
 
     def initialize(self, cb = None):
-        if cb is None:
-            self.threshold = random.uniform(-0.5, 0.5)
-            return self
-
         self.threshold = cb()
         return self
 
