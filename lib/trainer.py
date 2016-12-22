@@ -1,5 +1,4 @@
 import math
-import types
 import random
 
 
@@ -41,7 +40,7 @@ class Trainer(object):
             self.set(setting)
 
         epoch_limit = setting['epoch'] if setting and 'epoch' in setting else 5000
-        log = setting['log'] if setting and 'log' in setting else math.inf
+        log = setting['log'] if setting and 'log' in setting else 0
         update = setting['update'] if setting and 'update' in setting else None
         shuffle = setting['shuffle'] if setting and 'shuffle' in setting else False
         error = 1
@@ -56,7 +55,7 @@ class Trainer(object):
                 errors = self.network.propagate(data['output'])
                 error += pow(sum(errors), 2)
 
-            if epoch % log == 0:
+            if log != 0 and epoch % log == 0:
                 print(epoch, error, self.learning_rate)
 
             if update is not None:
