@@ -37,17 +37,16 @@ class Trainer(object):
             learning_rate = rate
             rate = None
         elif isinstance(rate, types.FunctionType):
-            learning_rate = rate()
+            learning_rate = rate(-1)
         else:
             raise ValueError('Rate value must be a float or a function')
 
         # Train
         sum_error = 1
-        epoch = 0
+        epoch = 1
         while sum_error > error and epoch < epoch_limit:
-            epoch += 1
-            previous_error = sum_error
             sum_error = 0
+            last_error = error
             for data in training_set:
                 self.network.activate(data['input'])
                 errors = self.network.propagate(
@@ -60,10 +59,12 @@ class Trainer(object):
                 print(epoch, sum_error, learning_rate)
 
             if rate is not None:
-                learning_rate = rate(previous_error, sum_error, learning_rate)
+                learning_rate = rate(learning_rate, sum_error, last_error)
 
             if shuffle:
                 random.shuffle(training_set)
+
+            epoch += 1
         return sum_error, epoch
 
     def XOR(self, settings = None):
