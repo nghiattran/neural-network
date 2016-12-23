@@ -35,7 +35,7 @@ class Layer(object):
     def activate(self, inputs = None):
         if inputs is None:
             return [self.neurons[i].activate() for i in range(len(self.neurons))]
-
+        print(inputs, len(self.neurons))
         if len(inputs) != len(self.neurons):
             raise ValueError('Input size does not match number of neurons.')
 
@@ -69,3 +69,6 @@ class Layer(object):
         for neuron in self.neurons:
             connections += neuron.next
         return connections
+
+    def get_activations(self):
+        return [neuron.activation for neuron in self.neurons]

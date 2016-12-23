@@ -5,8 +5,21 @@ def RAN():
     value = random.uniform(-0.5, 0.5)
     return value
 
+
 class Network(object):
+    __id_count__ = 0
+
+    @staticmethod
+    def generate_id():
+        Network.__id_count__ += 1
+        return Network.__id_count__
+
     def __init__(self, setting = None):
+        self.previous = None
+        self.next = None
+        self.epoch = 0
+        self.id = Network.generate_id()
+
         if setting is None:
             return
         self.set(setting)
@@ -68,7 +81,27 @@ class Network(object):
             connections += layer.get_connections()
         return connections
 
-    def activate(self, inputs):
+    def activate_recursive(self, inputs, round = 0):
+        # If previous is not None, this layer is a hidden layer, so, activate the previous layer
+        if self.previous is not None:
+            # If previous round is equal is this layer round, the previous layer is already executed.
+            if self.previous.round == round:
+                inputs = self.previous.get_activations()
+            else:
+                inputs = self.previous.activate_recursive(inputs)
+        print(inputs, self.name)
+        return self.activate(inputs)
+
+    def activate(self, inputs, epoch = 0):
+        self.epoch = epoch
+        # If previous is not None, this layer is a hidden layer, so, activate the previous layer
+        if self.previous is not None:
+            # If previous round is equal is this layer round, the previous layer is already executed.
+            if self.previous.epoch == epoch:
+                inputs = self.previous.output.get_activations()
+            else:
+                inputs = self.previous.activate(inputs)
+
         self.input.activate(inputs)
         for layer in self.hidden:
             layer.activate()
@@ -90,6 +123,12 @@ class Network(object):
     def set_squash(self, squash):
         for neuron in self.get_neurons():
             neuron.squash = squash
+
+    def project(self, network):
+        self.next = network
+        network.previous = self
+        self.output.project(network.input)
+        return self
 
     def to_json(self):
         return {
