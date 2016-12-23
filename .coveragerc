@@ -1,0 +1,14 @@
+# .coveragerc to control coverage.py
+[run]
+branch = True
+source = lib
+include = lib/*
+          lib\*
+[report]
+omit = venv/*
+      venv\*
+
+ignore_errors = True
+
+[html]
+directory = coverage_html_report
