@@ -6,7 +6,9 @@ def RAN():
     return value
 
 class Network(object):
-    def __init__(self, setting):
+    def __init__(self, setting = None):
+        if setting is None:
+            return
         self.set(setting)
 
     def initialize(self, cb=None):
@@ -102,4 +104,30 @@ class Network(object):
             'hidden': [Layer(layer_setting) for layer_setting in setting['layers']['hidden']],
             'output': Layer(setting['layers']['output']),
             'connections': setting['connections']
+        })
+
+
+class Perceptron(Network):
+    def __init__(self, input, output, hidden = None):
+        super(Perceptron, self).__init__()
+        input_layer = Layer(input)
+        output_layer = Layer(output)
+
+        hidden_layer = []
+        if hidden is None:
+            input_layer.project(output_layer)
+        else:
+            for i in range(len(hidden)):
+                hidden_layer.append(Layer(hidden[i]))
+
+                if i != 0:
+                    hidden_layer[i -1].project(hidden_layer[i])
+
+            input_layer.project(hidden_layer[0])
+            hidden_layer[len(hidden_layer) - 1].project(output_layer)
+
+        self.set({
+            'input': input_layer,
+            'hidden': hidden_layer,
+            'output': output_layer
         })

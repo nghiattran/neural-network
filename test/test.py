@@ -1,5 +1,4 @@
-from lib.network import Network
-from lib.layer import Layer
+from lib.network import Perceptron, Network
 from lib.trainer import Trainer
 import json
 import os
@@ -7,18 +6,7 @@ import unittest
 
 class TestNeuralNetwork(unittest.TestCase):
     def test_XOR_operation(self):
-        input_layer = Layer(2)
-        hidden_layer = Layer(20)
-        output_layer = Layer(1)
-
-        input_layer.project(hidden_layer)
-        hidden_layer.project(output_layer)
-
-        network = Network({
-            'input': input_layer,
-            'hidden': [hidden_layer],
-            'output': output_layer
-        })
+        network = Perceptron(input=2, hidden=[20], output=1)
         trainer = Trainer(network)
         error, epoch = trainer.XOR()
         self.assertTrue(error < 0.05)
@@ -29,18 +17,7 @@ class TestNeuralNetwork(unittest.TestCase):
         self.assertTrue(abs(sum(network.activate([1, 1])) - 0) < 0.1)
 
     def test_AND_operation(self):
-        input_layer = Layer(2)
-        hidden_layer = Layer(20)
-        output_layer = Layer(1)
-
-        input_layer.project(hidden_layer)
-        hidden_layer.project(output_layer)
-
-        network = Network({
-            'input': input_layer,
-            'hidden': [hidden_layer],
-            'output': output_layer
-        })
+        network = Perceptron(input=2, hidden=[20], output=1)
         trainer = Trainer(network)
         error, epoch = trainer.AND()
         self.assertTrue(error < 0.05)
@@ -51,21 +28,8 @@ class TestNeuralNetwork(unittest.TestCase):
         self.assertTrue(abs(sum(network.activate([1, 1])) - 1) < 0.1)
 
     def test_to_json(self):
-        input_layer = Layer(2)
-        hidden_layer = Layer(2)
-        output_layer = Layer(1)
-
-        input_layer.project(hidden_layer)
-        hidden_layer.project(output_layer)
-
-        network = Network({
-            'input': input_layer,
-            'hidden': [hidden_layer],
-            'output': output_layer
-        })
-
+        network = Perceptron(input=2, hidden=[2], output=1)
         network_json = network.to_json()
-
         self.check_network_and_json(network, network_json)
 
     def test_from_json(self):
