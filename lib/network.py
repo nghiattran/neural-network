@@ -68,24 +68,28 @@ class Network(object):
             connections += layer.get_connections()
         return connections
 
-    def set_trainer(self, trainer):
-        self.input.set_trainer(trainer)
-        for layer in self.hidden:
-            layer.set_trainer(trainer)
-        self.output.set_trainer(trainer)
-
     def activate(self, inputs):
         self.input.activate(inputs)
         for layer in self.hidden:
             layer.activate()
         return self.output.activate()
 
-    def propagate(self, outputs):
-        errors = self.output.propagate(outputs)
+    def propagate(self, learning_rate, outputs = None, momentum = 0):
+        errors = self.output.propagate(learning_rate=learning_rate,
+                                       outputs=outputs,
+                                       momentum=momentum)
         for i in range(len(self.hidden) - 1, -1, -1):
-            self.hidden[i].propagate()
-        self.input.propagate()
+            self.hidden[i].propagate(learning_rate=learning_rate,
+                                     outputs=None,
+                                     momentum=momentum)
+        self.input.propagate(learning_rate=learning_rate,
+                             outputs=None,
+                             momentum=momentum)
         return errors
+
+    def set_squash(self, squash):
+        for neuron in self.get_neurons():
+            neuron.squash = squash
 
     def to_json(self):
         return {

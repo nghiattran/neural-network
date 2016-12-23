@@ -41,14 +41,20 @@ class Layer(object):
 
         return [self.neurons[i].activate(inputs[i]) for i in range(len(self.neurons))]
 
-    def propagate(self, outputs = None):
+    def propagate(self, learning_rate, outputs = None, momentum=0):
         if outputs is None:
-            return [self.neurons[i].propagate() for i in range(len(self.neurons)) ]
+            return [
+                self.neurons[i].propagate(learning_rate=learning_rate, output=None, momentum=momentum)
+                for i in range(len(self.neurons))
+            ]
 
         if len(outputs) != len(self.neurons):
             raise ValueError('Output size does not match number of neurons.')
 
-        return [self.neurons[i].propagate(outputs[i]) for i in range(len(self.neurons))]
+        return [
+            self.neurons[i].propagate(learning_rate=learning_rate, output=outputs[i], momentum=momentum)
+            for i in range(len(self.neurons))
+        ]
 
     def project(self, layer):
         if type(layer) is not Layer:
@@ -63,7 +69,3 @@ class Layer(object):
         for neuron in self.neurons:
             connections += neuron.next
         return connections
-
-    def set_trainer(self, trainer):
-        for neuron in self.neurons:
-            neuron.set_trainer(trainer)

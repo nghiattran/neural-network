@@ -1,69 +1,70 @@
 import math
 import random
+import types
 
-
-def LOGISTIC(x, derivative = False):
-    if derivative == True:
-        fx = LOGISTIC(x)
-        return fx * (1 - fx)
-    return 1 / (1 + pow(math.e, -1 * x))
 
 class Trainer(object):
-    def __init__(self, network = None, setting = None):
+    def __init__(self, network = None):
         if network is not None:
             self.set_network(network)
         else:
             self.network = None
 
-        self.set({})
-
-    def set(self, setting):
-        if type(setting) is dict:
-            self.learning_rate = setting['rate'] if 'rate' in setting else 0.1
-            self.error = setting['error'] if 'error' in setting else 0.005
-            self.squash = setting['quash'] if 'quash' in setting else LOGISTIC
-            self.momentum = setting['momentum'] if 'momentum' in setting else 0.95
-            if not (0 <= self.momentum and self.momentum < 1):
-                raise ValueError('Momemtum value has to be: 0 <= momemtum < 1')
-        else:
-            raise ValueError('The second argument must be a dictionary')
-
     def set_network(self, network):
         self.network = network
-        self.network.set_trainer(self)
 
     def train(self, training_set, setting = None):
+        # Validate all parameters
         if self.network is None:
             raise ValueError('Network has to be set before trainning.')
 
-        if setting is not None:
-            self.set(setting)
+        if setting is None:
+            setting = {}
+        elif type(setting) is not dict:
+            raise ValueError('The second argument must be a dictionary')
 
-        epoch_limit = setting['epoch'] if setting and 'epoch' in setting else 5000
-        log = setting['log'] if setting and 'log' in setting else 0
-        update = setting['update'] if setting and 'update' in setting else None
-        shuffle = setting['shuffle'] if setting and 'shuffle' in setting else False
-        error = 1
+        # Configure settings
+        epoch_limit = setting['epoch'] if 'epoch' in setting else 5000
+        log = setting['log'] if 'log' in setting else 0
+        shuffle = setting['shuffle'] if 'shuffle' in setting else False
+        rate = setting['rate'] if 'rate' in setting else 0.1
+        error = setting['error'] if 'error' in setting else 0.005
+        momentum = setting['momentum'] if 'momentum' in setting else 0.95
+        if not (0 <= momentum and momentum < 1):
+            raise ValueError('Momemtum value has to be: 0 <= momemtum < 1')
+
+        if type(rate) is float:
+            learning_rate = rate
+            rate = None
+        elif isinstance(rate, types.FunctionType):
+            learning_rate = rate()
+        else:
+            raise ValueError('Rate value must be a float or a function')
+
+        # Train
+        sum_error = 1
         epoch = 0
-
-        while error > self.error and epoch < epoch_limit:
+        while sum_error > error and epoch < epoch_limit:
             epoch += 1
-            previous_error = error
-            error = 0
+            previous_error = sum_error
+            sum_error = 0
             for data in training_set:
                 self.network.activate(data['input'])
-                errors = self.network.propagate(data['output'])
-                error += pow(sum(errors), 2)
+                errors = self.network.propagate(
+                    learning_rate=learning_rate,
+                    momentum=momentum,
+                    outputs=data['output'])
+                sum_error += pow(sum(errors), 2)
 
             if log != 0 and epoch % log == 0:
-                print(epoch, error, self.learning_rate)
+                print(epoch, sum_error, learning_rate)
 
-            if update is not None:
-                self.learning_rate = update(previous_error, error, self.learning_rate)
+            if rate is not None:
+                learning_rate = rate(previous_error, sum_error, learning_rate)
 
             if shuffle:
                 random.shuffle(training_set)
-        return error, epoch
+        return sum_error, epoch
 
     def XOR(self, settings = None):
         if settings is None:

@@ -1,5 +1,5 @@
 from lib.connection import Connection
-import random
+import math
 
 
 class Neuron(object):
@@ -23,6 +23,7 @@ class Neuron(object):
             self.threshold = 0
             self.state = 0
             self.old = 0
+            self.squash = LOGISTIC
         else:
             try:
                 self.id = setting['id']
@@ -30,6 +31,12 @@ class Neuron(object):
                 self.threshold = setting['threshold']
                 self.state = setting['state']
                 self.old = setting['old']
+                self.squash = {
+                    'LOGISTIC': LOGISTIC,
+                    'TANH': TANH,
+                    'LINEAR': LINEAR,
+                    'RELU': RELU
+                }[setting['squash']]
             except:
                 raise ValueError('Input file is corrupted.')
 
@@ -43,7 +50,8 @@ class Neuron(object):
             'activation': self.activation,
             'state': self.state,
             'old': self.old,
-            'threshold': self.threshold
+            'threshold': self.threshold,
+            'squash': self.squash.__name__
         }
 
     @staticmethod
@@ -61,11 +69,11 @@ class Neuron(object):
             self.state += connection.get_state()
 
         # eq 6.2
-        self.activation = self.trainer.squash(self.state - self.threshold)
+        self.activation = self.squash(self.state - self.threshold)
 
         return self.activation
 
-    def propagate(self, output = None):
+    def propagate(self, learning_rate, output = None, momentum = 0):
         # output is None means this is a neuron in hidden layer
         if output is None:
             # eq 6.15
@@ -77,24 +85,51 @@ class Neuron(object):
             error = output - self.activation
 
         # eq 6.13
-        self.error_gradient = self.trainer.squash(self.state - self.threshold, True) * error
+        self.error_gradient = self.squash(self.state - self.threshold, True) * error
 
         # Update all connections
         for connection in self.previous:
-            connection.calculate_weight_correction(self.trainer.learning_rate, self.trainer.momentum)
+            connection.calculate_weight_correction(learning_rate, momentum)
 
         for connection in self.next:
             connection.update()
 
         # Update threshold
-        self.threshold += (-1) * self.trainer.learning_rate * self.error_gradient
+        self.threshold += (-1) * learning_rate * self.error_gradient
 
         return error
-
-    def set_trainer(self, trainer):
-        self.trainer = trainer
-        return self
 
     def connect(self, next_neuron, weight = 0):
         Connection(self, next_neuron, weight)
         return self
+
+
+def LOGISTIC(x, derivative = False):
+    if derivative:
+        fx = LOGISTIC(x)
+        return fx * (1 - fx)
+
+    return 1 / (1 + pow(math.e, -1 * x))
+
+
+def TANH(x, derivative = False):
+    if derivative:
+        fx = TANH(x)
+        return 1 - math.pow(fx, 2)
+
+    p = math.exp(x)
+    n = 1 / p
+    return (p - n) / (p + n)
+
+
+def RELU(x, derivative = False):
+    if derivative:
+        return 1 if x > 0 else 0
+
+    return x if x > 0 else 0
+
+def LINEAR(x, derivative = False):
+    if derivative:
+        return 1
+    return x
+

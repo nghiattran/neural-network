@@ -40,29 +40,28 @@ class TestNeuralNetwork(unittest.TestCase):
 
             self.check_network_and_json(network, network_json)
 
+    def check_neuron(self, first, second):
+        self.assertTrue(first.activation == second['activation'])
+        self.assertTrue(first.threshold == second['threshold'])
+        self.assertTrue(first.squash.__name__ == second['squash'])
+
     def check_network_and_json(self, network, network_json):
         # Check input layer
         self.assertTrue(len(network.input.neurons) == len(network_json['layers']['input']['neurons']))
         for index in range(len(network.input.neurons)):
-            first = network.input.neurons[index]
-            second = network_json['layers']['input']['neurons'][index]
-            self.assertTrue(first.activation == second['activation'])
-            self.assertTrue(first.threshold == second['threshold'])
+            self.check_neuron(network.input.neurons[index],
+                              network_json['layers']['input']['neurons'][index])
 
         # Check hidden layers
         self.assertTrue(len(network.hidden) == len(network_json['layers']['hidden']))
         for index, layer in enumerate(network.hidden):
             self.assertTrue(len(layer.neurons) == len(network_json['layers']['hidden'][index]))
             for index2 in range(len(network.hidden[index].neurons)):
-                first = network.hidden[index].neurons[index2]
-                second = network_json['layers']['hidden'][index]['neurons'][index2]
-                self.assertTrue(first.activation == second['activation'])
-                self.assertTrue(first.threshold == second['threshold'])
+                self.check_neuron(network.hidden[index].neurons[index2],
+                                  network_json['layers']['hidden'][index]['neurons'][index2])
 
         # Check output layer
         self.assertTrue(len(network.output.neurons) == len(network_json['layers']['output']['neurons']))
         for index in range(len(network.output.neurons)):
-            first = network.output.neurons[index]
-            second = network_json['layers']['output']['neurons'][index]
-            self.assertTrue(first.activation == second['activation'])
-            self.assertTrue(first.threshold == second['threshold'])
+            self.check_neuron(network.output.neurons[index],
+                              network_json['layers']['output']['neurons'][index])
