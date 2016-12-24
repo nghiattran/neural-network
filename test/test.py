@@ -9,7 +9,7 @@ class TestNeuralNetwork(unittest.TestCase):
         network = Perceptron(input=2, hidden=[20], output=1)
         trainer = Trainer(network)
         error, epoch = trainer.XOR()
-        self.assertTrue(error < 0.05)
+        self.assertTrue(error < 0.1)
 
         self.assertTrue(abs(sum(network.activate([0, 0])) - 0) < 0.1)
         self.assertTrue(abs(sum(network.activate([0, 1])) - 1) < 0.1)
@@ -20,7 +20,7 @@ class TestNeuralNetwork(unittest.TestCase):
         network = Perceptron(input=2, hidden=[20], output=1)
         trainer = Trainer(network)
         error, epoch = trainer.AND()
-        self.assertTrue(error < 0.05)
+        self.assertTrue(error < 0.1)
 
         self.assertTrue(abs(sum(network.activate([0, 0])) - 0) < 0.1)
         self.assertTrue(abs(sum(network.activate([0, 1])) - 0) < 0.1)

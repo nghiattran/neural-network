@@ -28,10 +28,11 @@ class Trainer(object):
         log = setting['log'] if 'log' in setting else 0
         shuffle = setting['shuffle'] if 'shuffle' in setting else False
         rate = setting['rate'] if 'rate' in setting else 0.1
-        error = setting['error'] if 'error' in setting else 0.005
+        error = setting['error'] if 'error' in setting else 0.1
         momentum = setting['momentum'] if 'momentum' in setting else 0.95
         if not (0 <= momentum and momentum < 1):
             raise ValueError('Momemtum value has to be: 0 <= momemtum < 1')
+        cost = setting['cost'] if 'momentucostm' in setting else Cost.SE
 
         if type(rate) is float:
             learning_rate = rate
@@ -48,12 +49,12 @@ class Trainer(object):
             sum_error = 0
             last_error = error
             for data in training_set:
-                self.network.activate(data['input'])
-                errors = self.network.propagate(
+                outputs = self.network.activate(data['input'])
+                self.network.propagate(
                     learning_rate=learning_rate,
                     momentum=momentum,
                     outputs=data['output'])
-                sum_error += pow(sum(errors), 2)
+                sum_error += cost(data['output'], outputs)
 
             if log != 0 and epoch % log == 0:
                 print(epoch, sum_error, learning_rate)
@@ -72,6 +73,8 @@ class Trainer(object):
             settings = {
                 'shuffle': True,
                 'momentum': 0.99,
+                'rate': 0.1,
+                'error': 0.01
             }
 
         return self.train([{
@@ -93,6 +96,8 @@ class Trainer(object):
             settings = {
                 'shuffle': True,
                 'momentum': 0.99,
+                'rate': 0.1,
+                'error': 0.01
             }
 
         return self.train([{
@@ -108,3 +113,28 @@ class Trainer(object):
             'input': [1, 1],
             'output': [1]
         }], settings)
+
+
+class Cost(object):
+    @staticmethod
+    def CROSS_ENTROPY(targets, outputs):
+        leverage = 1e-10
+        cost = 0
+        for i in range(len(outputs)):
+            cost -= (targets[i] * math.log(outputs[i] + leverage)) \
+                    + ((1 - targets[i]) * math.log(1 + leverage- outputs[i]))
+        return cost
+
+    @staticmethod
+    def SE(targets, outputs):
+        cost = 0
+        for i in range(len(outputs)):
+            cost += math.pow(targets[i] - outputs[i], 2)
+        return cost
+
+    @staticmethod
+    def MSE(targets, outputs):
+        cost = 0
+        for i in range(len(outputs)):
+            cost += math.pow(targets[i] - outputs[i], 2)
+        return cost / len(outputs)
